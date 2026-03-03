@@ -78,7 +78,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── Dados ──────────────────────────────────────────────────────────────────────
-CAPITALS = [
+CAPITALS_DEFAULT = [
     {"name":"Rio Branco",    "state":"AC","lat":-9.97499, "lon":-67.82471,"address":"R. Benjamim Constant, 945"},
     {"name":"Maceió",        "state":"AL","lat":-9.66583, "lon":-35.73528,"address":"Praça Thomaz Espíndola, s/n"},
     {"name":"Macapá",        "state":"AP","lat": 0.03444, "lon":-51.06639,"address":"Av. Iracema Carvão do Nascimento, 600"},
@@ -366,6 +366,10 @@ def import_from_xlsx(uploaded_file):
     return matrix, imported_cities, pairs_total, pairs_with_road
 
 # ── Session state ──────────────────────────────────────────────────────────────
+if "capitals" not in st.session_state:
+    st.session_state.capitals = [dict(c) for c in CAPITALS_DEFAULT]
+CAPITALS = st.session_state.capitals  # sempre aponta para a lista persistida
+
 for k,v in [("selected",[c["name"] for c in CAPITALS]),("matrix",{}),
             ("calculated",False),("calc_cities",[]),("has_ors",False)]:
     if k not in st.session_state: st.session_state[k]=v
@@ -592,19 +596,20 @@ with tab_cities:
         if submitted:
             if not new_name or not new_state:
                 st.error("Nome e UF são obrigatórios.")
-            elif any(c["name"].lower() == new_name.strip().lower() for c in CAPITALS):
+            elif any(c["name"].lower() == new_name.strip().lower() for c in st.session_state.capitals):
                 st.warning(f"'{new_name}' já está na base.")
             else:
-                CAPITALS.append({
+                new_city = {
                     "name": new_name.strip(),
                     "state": new_state.strip().upper(),
-                    "lat": new_lat,
-                    "lon": new_lon,
+                    "lat": float(new_lat),
+                    "lon": float(new_lon),
                     "address": new_address.strip()
-                })
+                }
+                st.session_state.capitals.append(new_city)
                 st.session_state.selected.append(new_name.strip())
                 st.session_state[f"cb_{new_name.strip()}"] = True
-                st.success(f"✅ '{new_name}, {new_state.upper()}' adicionada com sucesso!")
+                st.success(f"✅ '{new_name.strip()}, {new_state.strip().upper()}' adicionada!")
                 st.rerun()
 
 if st.session_state.calculated and st.session_state.calc_cities:
