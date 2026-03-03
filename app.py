@@ -386,12 +386,18 @@ with st.sidebar:
     c1b,c2b=st.columns(2)
     if c1b.button("✓ Todas",use_container_width=True):
         st.session_state.selected=[c["name"] for c in CAPITALS]
+        for c in CAPITALS:
+            st.session_state[f"cb_{c['name']}"]=True
         st.session_state.calculated=False; st.rerun()
     if c2b.button("✗ Nenhuma",use_container_width=True):
-        st.session_state.selected=[]; st.session_state.calculated=False; st.rerun()
+        st.session_state.selected=[]
+        for c in CAPITALS:
+            st.session_state[f"cb_{c['name']}"]=False
+        st.session_state.calculated=False; st.rerun()
     new_sel=[]
     for c in CAPITALS:
-        if st.checkbox(f"{c['name']} ({c['state']})", value=c["name"] in st.session_state.selected, key=f"cb_{c['name']}"):
+        val = st.session_state.get(f"cb_{c['name']}", c["name"] in st.session_state.selected)
+        if st.checkbox(f"{c['name']} ({c['state']})", value=val, key=f"cb_{c['name']}"):
             new_sel.append(c["name"])
     if set(new_sel)!=set(st.session_state.selected):
         st.session_state.selected=new_sel; st.session_state.calculated=False
@@ -428,13 +434,8 @@ with st.sidebar:
 # ── Main ───────────────────────────────────────────────────────────────────────
 selected_cities=[c for c in CAPITALS if c["name"] in st.session_state.selected]
 
-if selected_cities:
-    chips="<div style='margin-bottom:16px;line-height:2.2'>"
-    for c in selected_cities:
-        chips+=f"<span class='city-chip'>{c['name']}, {c['state']} <span class='chip-coords'>{c['lat']:.4f}, {c['lon']:.4f}</span></span>"
-    chips+="</div>"
-    st.markdown(chips, unsafe_allow_html=True)
-else:
+# Aviso se nenhuma cidade selecionada
+if not selected_cities:
     st.warning("Selecione pelo menos 2 cidades no menu lateral.")
 
 btn_col1, btn_col2, _ = st.columns([2,2,4])
@@ -529,6 +530,83 @@ elif resume_clicked:
         st.session_state.calculated = True
 
 # ── Resultados ─────────────────────────────────────────────────────────────────
+
+# Aba de Cidades sempre visível (mesmo antes de calcular)
+st.markdown("---")
+
+# ── TABS PRINCIPAIS ────────────────────────────────────────────────────────────
+tab_calc, tab_serp, tab_cities = st.tabs([
+    "📊 Matriz de Distâncias",
+    "🐍 Índice de Serpentividade",
+    "📍 Cidades & Geolocalização"
+])
+
+# ── TAB CIDADES ────────────────────────────────────────────────────────────────
+with tab_cities:
+    st.markdown("#### Base de Cidades")
+    st.markdown("Cidades disponíveis para cálculo. Selecione as desejadas no menu lateral.")
+
+    # Tabela de cidades com indicação de selecionada
+    tbl_c = ("<div style='overflow-x:auto'><table class='dist-table'>"
+             "<thead><tr>"
+             "<th style='text-align:left'>Cidade</th>"
+             "<th>UF</th>"
+             "<th>Latitude (Sede)</th>"
+             "<th>Longitude (Sede)</th>"
+             "<th>Endereço da Sede</th>"
+             "<th>Selecionada</th>"
+             "</tr></thead><tbody>")
+    for i, c in enumerate(CAPITALS):
+        sel = c["name"] in st.session_state.selected
+        badge = ("<span style='background:#dcfce7;color:#15803d;padding:2px 9px;"
+                 "border-radius:10px;font-size:.72rem;font-weight:700'>✓ Sim</span>" if sel else
+                 "<span style='background:#f1f5f9;color:#94a3b8;padding:2px 9px;"
+                 "border-radius:10px;font-size:.72rem'>— Não</span>")
+        bg = "background:#f0fdf4;" if sel else ""
+        tbl_c += (f"<tr style='{bg}'>"
+                  f"<td style='font-weight:600;text-align:left'>{c['name']}</td>"
+                  f"<td style='text-align:center;font-family:monospace;font-size:.8rem'>{c['state']}</td>"
+                  f"<td style='text-align:center;font-family:monospace;font-size:.78rem'>{c['lat']:.5f}</td>"
+                  f"<td style='text-align:center;font-family:monospace;font-size:.78rem'>{c['lon']:.5f}</td>"
+                  f"<td style='text-align:left;font-size:.78rem;color:#64748b'>{c.get('address','')}</td>"
+                  f"<td style='text-align:center'>{badge}</td>"
+                  f"</tr>")
+    tbl_c += "</tbody></table></div>"
+    st.markdown(tbl_c, unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.markdown("#### ➕ Adicionar Nova Cidade")
+    st.caption("Preencha os dados da sede municipal (prefeitura) da cidade que deseja adicionar.")
+
+    with st.form("form_add_city", clear_on_submit=True):
+        fc1, fc2 = st.columns([3,1])
+        fc3, fc4 = st.columns(2)
+        fc5, fc6 = st.columns([3,1])
+        new_name    = fc1.text_input("Nome da Cidade", placeholder="Ex: Campinas")
+        new_state   = fc2.text_input("UF", placeholder="SP", max_chars=2)
+        new_lat     = fc3.number_input("Latitude (Sede)", value=-23.0, format="%.5f", step=0.00001)
+        new_lon     = fc4.number_input("Longitude (Sede)", value=-47.0, format="%.5f", step=0.00001)
+        new_address = fc5.text_input("Endereço da Sede", placeholder="Rua XV de Novembro, 1000 - Centro")
+        submitted   = fc6.form_submit_button("➕ Adicionar", use_container_width=True, type="primary")
+
+        if submitted:
+            if not new_name or not new_state:
+                st.error("Nome e UF são obrigatórios.")
+            elif any(c["name"].lower() == new_name.strip().lower() for c in CAPITALS):
+                st.warning(f"'{new_name}' já está na base.")
+            else:
+                CAPITALS.append({
+                    "name": new_name.strip(),
+                    "state": new_state.strip().upper(),
+                    "lat": new_lat,
+                    "lon": new_lon,
+                    "address": new_address.strip()
+                })
+                st.session_state.selected.append(new_name.strip())
+                st.session_state[f"cb_{new_name.strip()}"] = True
+                st.success(f"✅ '{new_name}, {new_state.upper()}' adicionada com sucesso!")
+                st.rerun()
+
 if st.session_state.calculated and st.session_state.calc_cities:
     cities=st.session_state.calc_cities
     matrix=st.session_state.matrix
@@ -537,10 +615,8 @@ if st.session_state.calculated and st.session_state.calc_cities:
     if not has_ors:
         st.info("ℹ️ Distâncias por estrada e índice de serpentividade indisponíveis sem a chave ORS.")
 
-    st.markdown("---")
-
-    # ── Tabs ───────────────────────────────────────────────────────────────────
-    tab1, tab2 = st.tabs(["📊 Matriz de Distâncias", "🐍 Índice de Serpentividade"])
+    # ── Tabs de resultados ─────────────────────────────────────────────────────
+    tab1, tab2 = tab_calc, tab_serp  # alias para os resultados
 
     # ── TAB 1: Matriz ──────────────────────────────────────────────────────────
     with tab1:
