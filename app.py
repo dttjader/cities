@@ -288,6 +288,83 @@ def build_excel(cities, matrix):
     buf=io.BytesIO(); wb.save(buf); buf.seek(0)
     return buf
 
+
+# ── Importar Excel existente ───────────────────────────────────────────────────
+def import_from_xlsx(uploaded_file):
+    """Lê o Excel exportado pelo app e retorna matrix e lista de cidades."""
+    import openpyxl
+    wb = openpyxl.load_workbook(uploaded_file, data_only=True)
+
+    # Lê coordenadas da aba Coordenadas
+    cities_map = {}
+    if "Coordenadas das Sedes" in wb.sheetnames:
+        ws = wb["Coordenadas das Sedes"]
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            if row[0]:
+                name, state, lat, lon = row[0], row[1], row[2], row[3]
+                key = f"{name}, {state}"
+                cities_map[key] = {"name": name, "state": state,
+                                   "lat": float(lat), "lon": float(lon),
+                                   "address": row[4] if len(row) > 4 else ""}
+
+    # Lê distâncias da aba Por Estrada
+    matrix = {}
+    road_data = {}
+    if "Por Estrada (km)" in wb.sheetnames:
+        ws = wb["Por Estrada (km)"]
+        headers = [ws.cell(1, j).value for j in range(2, ws.max_column + 1)]
+        for i, row in enumerate(ws.iter_rows(min_row=2, min_col=1, values_only=True)):
+            c1_name = row[0]
+            if not c1_name: continue
+            for j, val in enumerate(row[1:]):
+                c2_name = headers[j] if j < len(headers) else None
+                if c2_name and c1_name != c2_name and isinstance(val, (int, float)):
+                    road_data[f"{c1_name}|{c2_name}"] = float(val)
+
+    # Lê distâncias da aba Linha Reta
+    line_data = {}
+    if "Linha Reta (km)" in wb.sheetnames:
+        ws = wb["Linha Reta (km)"]
+        headers = [ws.cell(1, j).value for j in range(2, ws.max_column + 1)]
+        for i, row in enumerate(ws.iter_rows(min_row=2, min_col=1, values_only=True)):
+            c1_name = row[0]
+            if not c1_name: continue
+            for j, val in enumerate(row[1:]):
+                c2_name = headers[j] if j < len(headers) else None
+                if c2_name and c1_name != c2_name and isinstance(val, (int, float)):
+                    line_data[f"{c1_name}|{c2_name}"] = float(val)
+
+    # Monta matrix no formato do app (chave = "NomeCidade1-NomeCidade2" sem UF)
+    all_pairs = set(list(road_data.keys()) + list(line_data.keys()))
+    for pair_key in all_pairs:
+        parts = pair_key.split("|")
+        if len(parts) != 2: continue
+        c1_full, c2_full = parts
+        # Extrai só o nome (sem ", UF")
+        c1_short = c1_full.split(",")[0].strip()
+        c2_short = c2_full.split(",")[0].strip()
+        road = road_data.get(pair_key)
+        line = line_data.get(pair_key) or line_data.get(f"{c2_full}|{c1_full}")
+        mk = f"{c1_short}-{c2_short}"
+        mk2 = f"{c2_short}-{c1_short}"
+        entry = {"line": line, "road": road}
+        matrix[mk] = entry
+        matrix[mk2] = entry
+
+    # Descobre cidades presentes
+    imported_cities = []
+    seen = set()
+    for c in CAPITALS:
+        full = f"{c['name']}, {c['state']}"
+        if full in cities_map and c["name"] not in seen:
+            imported_cities.append(c)
+            seen.add(c["name"])
+
+    pairs_with_road = sum(1 for v in matrix.values() if v.get("road") is not None)
+    pairs_total = len(matrix) // 2
+
+    return matrix, imported_cities, pairs_total, pairs_with_road
+
 # ── Session state ──────────────────────────────────────────────────────────────
 for k,v in [("selected",[c["name"] for c in CAPITALS]),("matrix",{}),
             ("calculated",False),("calc_cities",[]),("has_ors",False)]:
@@ -319,6 +396,34 @@ with st.sidebar:
     if set(new_sel)!=set(st.session_state.selected):
         st.session_state.selected=new_sel; st.session_state.calculated=False
     st.markdown(f"**{len(st.session_state.selected)}** cidade(s) selecionada(s)")
+    st.markdown("---")
+    st.markdown("### 📥 Importar Excel anterior")
+    uploaded = st.file_uploader(
+        "Carregue um .xlsx exportado pelo app",
+        type=["xlsx"],
+        help="Importa distâncias já calculadas — o app completará apenas os pares faltantes"
+    )
+    if uploaded:
+        if st.button("⬆ Importar dados", use_container_width=True):
+            try:
+                matrix, imp_cities, total, with_road = import_from_xlsx(uploaded)
+                st.session_state.matrix = matrix
+                st.session_state.calc_cities = imp_cities
+                st.session_state.calculated = True
+                st.session_state.has_ors = with_road > 0
+                st.session_state.selected = [c["name"] for c in imp_cities]
+                # Calcula pares faltantes para retomar
+                from itertools import combinations as comb2
+                all_pairs = list(comb2(imp_cities, 2))
+                pending = [(c1,c2) for c1,c2 in all_pairs
+                           if matrix.get(f"{c1['name']}-{c2['name']}", {}).get("road") is None]
+                st.session_state.pending_pairs = pending
+                st.session_state.done_count = total - len(pending)
+                st.session_state.total_pairs_count = total
+                st.success(f"✅ Importado! {with_road} pares com estrada, {len(pending)} faltando.")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Erro ao importar: {e}")
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 selected_cities=[c for c in CAPITALS if c["name"] in st.session_state.selected]
@@ -338,9 +443,58 @@ with btn_col1:
                               use_container_width=True, type="primary")
 
 # ── Cálculo ────────────────────────────────────────────────────────────────────
+# ── Botão retomar ────────────────────────────────────────────────────────────
+can_resume = (st.session_state.get("pending_pairs") and
+              st.session_state.get("calc_cities") == selected_cities)
+
+with btn_col1:
+    pass  # já renderizado acima
+
+resume_clicked = False
+if can_resume:
+    pending = st.session_state.pending_pairs
+    done_count = st.session_state.get("done_count", 0)
+    total_count = st.session_state.get("total_pairs_count", 0)
+    st.info(f"⚠️ Cálculo incompleto: **{done_count}/{total_count}** pares concluídos. "
+            f"Restam **{len(pending)}** pares.")
+    resume_clicked = st.button("▶ Retomar Cálculo", use_container_width=False, type="secondary")
+
+def run_calculation(pairs_to_calc, ors_key, has_ors, existing_matrix):
+    matrix = dict(existing_matrix)
+    all_pairs_count = st.session_state.get("total_pairs_count", len(pairs_to_calc))
+    done_so_far = st.session_state.get("done_count", 0)
+
+    prog = st.progress(int(done_so_far/all_pairs_count*100), text="Iniciando…")
+    status = st.empty()
+    remaining = list(pairs_to_calc)
+
+    for idx, (c1, c2) in enumerate(remaining):
+        line = haversine(c1["lat"], c1["lon"], c2["lat"], c2["lon"])
+        road = None
+        if has_ors:
+            status.markdown(f"🚗 **{c1['name']} → {c2['name']}** "
+                            f"({done_so_far+idx+1}/{all_pairs_count})")
+            road = get_road_distance(c1, c2, ors_key)
+
+        key = f"{c1['name']}-{c2['name']}"
+        matrix[key] = {"line": line, "road": road}
+        matrix[f"{c2['name']}-{c1['name']}"] = {"line": line, "road": road}
+
+        # Salva progresso parcial a cada par
+        st.session_state.matrix = matrix
+        st.session_state.done_count = done_so_far + idx + 1
+        st.session_state.pending_pairs = remaining[idx+1:]
+
+        pct = int((done_so_far+idx+1)/all_pairs_count*100)
+        prog.progress(pct, text=f"Calculando… {done_so_far+idx+1}/{all_pairs_count}")
+
+    prog.progress(100, text="✅ Concluído!")
+    status.empty()
+    st.session_state.pending_pairs = []
+    return matrix
+
 if calc_clicked and len(selected_cities)>=2:
     pairs=list(combinations(selected_cities,2))
-    matrix={}
     has_ors=bool(ors_key and len(ors_key)>10)
 
     if has_ors:
@@ -349,26 +503,30 @@ if calc_clicked and len(selected_cities)>=2:
             st.error("❌ Chave ORS inválida ou sem créditos. Calculando apenas linha reta.")
             has_ors=False
 
-    prog=st.progress(0, text="Iniciando…")
-    status=st.empty()
+    # Inicializa estado
+    st.session_state.pending_pairs = pairs
+    st.session_state.done_count = 0
+    st.session_state.total_pairs_count = len(pairs)
+    st.session_state.calc_cities = selected_cities
+    st.session_state.has_ors = has_ors
+    st.session_state.calculated = False
 
-    for idx,(c1,c2) in enumerate(pairs):
-        line=haversine(c1["lat"],c1["lon"],c2["lat"],c2["lon"])
-        road=None
-        if has_ors:
-            status.markdown(f"🚗 **{c1['name']} → {c2['name']}** ({idx+1}/{len(pairs)})")
-            road=get_road_distance(c1,c2,ors_key)
-        key=f"{c1['name']}-{c2['name']}"
-        matrix[key]={"line":line,"road":road}
-        matrix[f"{c2['name']}-{c1['name']}"]={"line":line,"road":road}
-        prog.progress(int((idx+1)/len(pairs)*100), text=f"Calculando… {idx+1}/{len(pairs)}")
+    matrix = run_calculation(pairs, ors_key, has_ors, {})
+    st.session_state.matrix = matrix
+    st.session_state.calculated = True
+    st.session_state.has_ors = has_ors
 
-    prog.progress(100,text="✅ Concluído!")
-    status.empty()
-    st.session_state.matrix=matrix
-    st.session_state.calculated=True
-    st.session_state.calc_cities=selected_cities
-    st.session_state.has_ors=has_ors
+elif resume_clicked:
+    has_ors = st.session_state.get("has_ors", False)
+    pending = st.session_state.pending_pairs
+    existing = st.session_state.get("matrix", {})
+
+    if has_ors and not ors_key:
+        st.error("Cole a chave ORS novamente para retomar.")
+    else:
+        matrix = run_calculation(pending, ors_key, has_ors, existing)
+        st.session_state.matrix = matrix
+        st.session_state.calculated = True
 
 # ── Resultados ─────────────────────────────────────────────────────────────────
 if st.session_state.calculated and st.session_state.calc_cities:
