@@ -79,33 +79,58 @@ st.markdown("""
 
 # ── Dados ──────────────────────────────────────────────────────────────────────
 CAPITALS_DEFAULT = [
-    {"name":"Rio Branco",    "state":"AC","lat":-9.97499, "lon":-67.82471,"address":"R. Benjamim Constant, 945"},
-    {"name":"Maceió",        "state":"AL","lat":-9.66583, "lon":-35.73528,"address":"Praça Thomaz Espíndola, s/n"},
-    {"name":"Macapá",        "state":"AP","lat": 0.03444, "lon":-51.06639,"address":"Av. Iracema Carvão do Nascimento, 600"},
-    {"name":"Manaus",        "state":"AM","lat":-3.10194, "lon":-60.02500,"address":"Av. Brasil, 2971 - Compensa"},
-    {"name":"Salvador",      "state":"BA","lat":-12.97111,"lon":-38.51083,"address":"Praça Municipal, s/n"},
-    {"name":"Fortaleza",     "state":"CE","lat":-3.72389, "lon":-38.54306,"address":"Av. Desembargador Moreira, 310"},
-    {"name":"Brasília",      "state":"DF","lat":-15.78361,"lon":-47.89833,"address":"Palácio do Buriti"},
-    {"name":"Vitória",       "state":"ES","lat":-20.31944,"lon":-40.33778,"address":"Av. Marechal Mascarenhas de Moraes, 1927"},
-    {"name":"Goiânia",       "state":"GO","lat":-16.67861,"lon":-49.25389,"address":"Av. do Cerrado, 999"},
-    {"name":"São Luís",      "state":"MA","lat":-2.52972, "lon":-44.30278,"address":"Rua Afonso Pena, s/n"},
-    {"name":"Cuiabá",        "state":"MT","lat":-15.59611,"lon":-56.09667,"address":"Av. General Mello, s/n"},
-    {"name":"Campo Grande",  "state":"MS","lat":-20.44278,"lon":-54.64611,"address":"Av. Afonso Pena, 3297"},
-    {"name":"Belo Horizonte","state":"MG","lat":-19.91722,"lon":-43.93444,"address":"Av. Afonso Pena, 1212"},
-    {"name":"Belém",         "state":"PA","lat":-1.45583, "lon":-48.50444,"address":"Praça Felipe Patroni, s/n"},
-    {"name":"João Pessoa",   "state":"PB","lat":-7.11528, "lon":-34.86278,"address":"Praça João Pessoa, s/n"},
-    {"name":"Curitiba",      "state":"PR","lat":-25.42944,"lon":-49.27167,"address":"Av. Cândido de Abreu, 817"},
-    {"name":"Recife",        "state":"PE","lat":-8.05361, "lon":-34.88111,"address":"Av. Cais do Apolo, 925"},
-    {"name":"Teresina",      "state":"PI","lat":-5.08917, "lon":-42.80194,"address":"R. Areolino de Abreu, 900"},
-    {"name":"Rio de Janeiro","state":"RJ","lat":-22.90278,"lon":-43.17444,"address":"R. Afonso Cavalcanti, 455"},
-    {"name":"Natal",         "state":"RN","lat":-5.79500, "lon":-35.21139,"address":"Av. Deodoro da Fonseca, 384"},
-    {"name":"Porto Velho",   "state":"RO","lat":-8.76194, "lon":-63.90389,"address":"Av. 7 de Setembro, 237"},
-    {"name":"Boa Vista",     "state":"RR","lat": 2.81972, "lon":-60.67333,"address":"Rua Coronel Pinto, 241"},
-    {"name":"Porto Alegre",  "state":"RS","lat":-30.03444,"lon":-51.21750,"address":"Av. Loureiro da Silva, 255"},
-    {"name":"Florianópolis", "state":"SC","lat":-27.59500,"lon":-48.54861,"address":"R. Timóteo Pereira da Costa, 10"},
-    {"name":"Aracaju",       "state":"SE","lat":-10.91111,"lon":-37.07167,"address":"Av. Dr. Carlos Firpo, s/n"},
-    {"name":"São Paulo",     "state":"SP","lat":-23.55028,"lon":-46.63361,"address":"Viaduto do Chá, 15"},
-    {"name":"Palmas",        "state":"TO","lat":-10.18611,"lon":-48.33361,"address":"Quadra 502 Sul, Av. NS-02"},
+    # ── Capitais ──────────────────────────────────────────────────────────────
+    {"name":"Rio Branco",          "state":"AC","lat":-9.97499, "lon":-67.82471,"address":"R. Benjamim Constant, 945","tipo":"Capital"},
+    {"name":"Maceió",              "state":"AL","lat":-9.66583, "lon":-35.73528,"address":"Praça Thomaz Espíndola, s/n","tipo":"Capital"},
+    {"name":"Macapá",              "state":"AP","lat": 0.03444, "lon":-51.06639,"address":"Av. Iracema Carvão do Nascimento, 600","tipo":"Capital"},
+    {"name":"Manaus",              "state":"AM","lat":-3.10194, "lon":-60.02500,"address":"Av. Brasil, 2971 - Compensa","tipo":"Capital"},
+    {"name":"Salvador",            "state":"BA","lat":-12.97111,"lon":-38.51083,"address":"Praça Municipal, s/n","tipo":"Capital"},
+    {"name":"Fortaleza",           "state":"CE","lat":-3.72389, "lon":-38.54306,"address":"Av. Desembargador Moreira, 310","tipo":"Capital"},
+    {"name":"Brasília",            "state":"DF","lat":-15.78361,"lon":-47.89833,"address":"Palácio do Buriti","tipo":"Capital"},
+    {"name":"Vitória",             "state":"ES","lat":-20.31944,"lon":-40.33778,"address":"Av. Marechal Mascarenhas de Moraes, 1927","tipo":"Capital"},
+    {"name":"Goiânia",             "state":"GO","lat":-16.67861,"lon":-49.25389,"address":"Av. do Cerrado, 999","tipo":"Capital"},
+    {"name":"São Luís",            "state":"MA","lat":-2.52972, "lon":-44.30278,"address":"Rua Afonso Pena, s/n","tipo":"Capital"},
+    {"name":"Cuiabá",              "state":"MT","lat":-15.59611,"lon":-56.09667,"address":"Av. General Mello, s/n","tipo":"Capital"},
+    {"name":"Campo Grande",        "state":"MS","lat":-20.44278,"lon":-54.64611,"address":"Av. Afonso Pena, 3297","tipo":"Capital"},
+    {"name":"Belo Horizonte",      "state":"MG","lat":-19.91722,"lon":-43.93444,"address":"Av. Afonso Pena, 1212","tipo":"Capital"},
+    {"name":"Belém",               "state":"PA","lat":-1.45583, "lon":-48.50444,"address":"Praça Felipe Patroni, s/n","tipo":"Capital"},
+    {"name":"João Pessoa",         "state":"PB","lat":-7.11528, "lon":-34.86278,"address":"Praça João Pessoa, s/n","tipo":"Capital"},
+    {"name":"Curitiba",            "state":"PR","lat":-25.42944,"lon":-49.27167,"address":"Av. Cândido de Abreu, 817","tipo":"Capital"},
+    {"name":"Recife",              "state":"PE","lat":-8.05361, "lon":-34.88111,"address":"Av. Cais do Apolo, 925","tipo":"Capital"},
+    {"name":"Teresina",            "state":"PI","lat":-5.08917, "lon":-42.80194,"address":"R. Areolino de Abreu, 900","tipo":"Capital"},
+    {"name":"Rio de Janeiro",      "state":"RJ","lat":-22.90278,"lon":-43.17444,"address":"R. Afonso Cavalcanti, 455","tipo":"Capital"},
+    {"name":"Natal",               "state":"RN","lat":-5.79500, "lon":-35.21139,"address":"Av. Deodoro da Fonseca, 384","tipo":"Capital"},
+    {"name":"Porto Velho",         "state":"RO","lat":-8.76194, "lon":-63.90389,"address":"Av. 7 de Setembro, 237","tipo":"Capital"},
+    {"name":"Boa Vista",           "state":"RR","lat": 2.81972, "lon":-60.67333,"address":"Rua Coronel Pinto, 241","tipo":"Capital"},
+    {"name":"Porto Alegre",        "state":"RS","lat":-30.03444,"lon":-51.21750,"address":"Av. Loureiro da Silva, 255","tipo":"Capital"},
+    {"name":"Florianópolis",       "state":"SC","lat":-27.59500,"lon":-48.54861,"address":"R. Timóteo Pereira da Costa, 10","tipo":"Capital"},
+    {"name":"Aracaju",             "state":"SE","lat":-10.91111,"lon":-37.07167,"address":"Av. Dr. Carlos Firpo, s/n","tipo":"Capital"},
+    {"name":"São Paulo",           "state":"SP","lat":-23.55028,"lon":-46.63361,"address":"Viaduto do Chá, 15","tipo":"Capital"},
+    {"name":"Palmas",              "state":"TO","lat":-10.18611,"lon":-48.33361,"address":"Quadra 502 Sul, Av. NS-02","tipo":"Capital"},
+    # ── Interior (23 mais populosas não-capitais — Censo IBGE 2022) ───────────
+    {"name":"Guarulhos",           "state":"SP","lat":-23.46278,"lon":-46.53333,"address":"Av. Bom Clima, 91 - Bom Clima","tipo":"Interior"},
+    {"name":"Campinas",            "state":"SP","lat":-22.90556,"lon":-47.06083,"address":"Av. Anchieta, 200 - Centro","tipo":"Interior"},
+    {"name":"São Gonçalo",         "state":"RJ","lat":-22.82694,"lon":-43.05417,"address":"R. Coronel Serrado, 530 - Centro","tipo":"Interior"},
+    {"name":"São Bernardo do Campo","state":"SP","lat":-23.69417,"lon":-46.56472,"address":"R. Java, 425 - Jardim do Mar","tipo":"Interior"},
+    {"name":"Duque de Caxias",     "state":"RJ","lat":-22.78500,"lon":-43.31167,"address":"Av. General Gurjão, s/n - Centro","tipo":"Interior"},
+    {"name":"Nova Iguaçu",         "state":"RJ","lat":-22.75917,"lon":-43.45111,"address":"R. Dr. Moacyr Padilha, s/n - Centro","tipo":"Interior"},
+    {"name":"Santo André",         "state":"SP","lat":-23.66444,"lon":-46.53278,"address":"Praça IV Centenário, s/n - Centro","tipo":"Interior"},
+    {"name":"Osasco",              "state":"SP","lat":-23.53250,"lon":-46.79194,"address":"Av. Aryhovaldo de Miranda, 496 - Centro","tipo":"Interior"},
+    {"name":"Sorocaba",            "state":"SP","lat":-23.50167,"lon":-47.45806,"address":"Av. Engenheiro Carlos Reinaldo Mendes, 3041","tipo":"Interior"},
+    {"name":"Uberlândia",          "state":"MG","lat":-18.91861,"lon":-48.27722,"address":"Av. Anselmo Alves dos Santos, 600 - Santa Mônica","tipo":"Interior"},
+    {"name":"Ribeirão Preto",      "state":"SP","lat":-21.17750,"lon":-47.81028,"address":"Praça das Bandeiras, 20 - Centro","tipo":"Interior"},
+    {"name":"São José dos Campos", "state":"SP","lat":-23.17917,"lon":-45.88694,"address":"R. José de Alencar, 123 - Vila Santa Luzia","tipo":"Interior"},
+    {"name":"Jaboatão dos Guararapes","state":"PE","lat":-8.11278,"lon":-35.01333,"address":"R. Padre Antônio Leite, s/n - Prazeres","tipo":"Interior"},
+    {"name":"Contagem",            "state":"MG","lat":-19.93194,"lon":-44.05361,"address":"Av. João César de Oliveira, 3800 - Eldorado","tipo":"Interior"},
+    {"name":"Joinville",           "state":"SC","lat":-26.30250,"lon":-48.84583,"address":"Praça Nereu Ramos, s/n - Centro","tipo":"Interior"},
+    {"name":"Feira de Santana",    "state":"BA","lat":-12.26694,"lon":-38.96667,"address":"Praça da Prefeitura, s/n - Centro","tipo":"Interior"},
+    {"name":"Londrina",            "state":"PR","lat":-23.31028,"lon":-51.15806,"address":"Av. Duque de Caxias, 635 - Centro","tipo":"Interior"},
+    {"name":"Juiz de Fora",        "state":"MG","lat":-21.76194,"lon":-43.34972,"address":"Av. Brasil, 2001 - Bom Pastor","tipo":"Interior"},
+    {"name":"Aparecida de Goiânia","state":"GO","lat":-16.82361,"lon":-49.24361,"address":"Av. das Nações, s/n - Cardoso","tipo":"Interior"},
+    {"name":"Serra",               "state":"ES","lat":-20.12833,"lon":-40.30750,"address":"Av. Talma Rodrigues Ribeiro, 5416 - Portal de Jacaraípe","tipo":"Interior"},
+    {"name":"Campos dos Goytacazes","state":"RJ","lat":-21.75500,"lon":-41.32472,"address":"Av. 28 de Março, s/n - Centro","tipo":"Interior"},
+    {"name":"Ananindeua",          "state":"PA","lat":-1.36583, "lon":-48.37222,"address":"Rua 9 de Janeiro, s/n - Centro","tipo":"Interior"},
+    {"name":"São José do Rio Preto","state":"SP","lat":-20.81694,"lon":-49.37583,"address":"Praça Rui Barbosa, s/n - Centro","tipo":"Interior"},
 ]
 
 # ── Funções ────────────────────────────────────────────────────────────────────
@@ -555,6 +580,7 @@ with tab_cities:
              "<thead><tr>"
              "<th style='text-align:left'>Cidade</th>"
              "<th>UF</th>"
+             "<th>Tipo</th>"
              "<th>Latitude (Sede)</th>"
              "<th>Longitude (Sede)</th>"
              "<th>Endereço da Sede</th>"
@@ -562,7 +588,13 @@ with tab_cities:
              "</tr></thead><tbody>")
     for i, c in enumerate(CAPITALS):
         sel = c["name"] in st.session_state.selected
-        badge = ("<span style='background:#dcfce7;color:#15803d;padding:2px 9px;"
+        tipo = c.get("tipo", "—")
+        tipo_badge = (
+            "<span style='background:#eff6ff;color:#1e40af;padding:2px 8px;border-radius:8px;font-size:.68rem;font-weight:700'>Capital</span>"
+            if tipo == "Capital" else
+            "<span style='background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:8px;font-size:.68rem;font-weight:700'>Interior</span>"
+        )
+        sel_badge = ("<span style='background:#dcfce7;color:#15803d;padding:2px 9px;"
                  "border-radius:10px;font-size:.72rem;font-weight:700'>✓ Sim</span>" if sel else
                  "<span style='background:#f1f5f9;color:#94a3b8;padding:2px 9px;"
                  "border-radius:10px;font-size:.72rem'>— Não</span>")
@@ -570,10 +602,11 @@ with tab_cities:
         tbl_c += (f"<tr style='{bg}'>"
                   f"<td style='font-weight:600;text-align:left'>{c['name']}</td>"
                   f"<td style='text-align:center;font-family:monospace;font-size:.8rem'>{c['state']}</td>"
-                  f"<td style='text-align:center;font-family:monospace;font-size:.78rem'>{c['lat']:.5f}</td>"
-                  f"<td style='text-align:center;font-family:monospace;font-size:.78rem'>{c['lon']:.5f}</td>"
+                  f"<td style='text-align:center'>{tipo_badge}</td>"
+                  f"<td style='text-align:center;font-family:monospace;font-size:.78rem'>{c.get('lat',0):.5f}</td>"
+                  f"<td style='text-align:center;font-family:monospace;font-size:.78rem'>{c.get('lon',0):.5f}</td>"
                   f"<td style='text-align:left;font-size:.78rem;color:#64748b'>{c.get('address','')}</td>"
-                  f"<td style='text-align:center'>{badge}</td>"
+                  f"<td style='text-align:center'>{sel_badge}</td>"
                   f"</tr>")
     tbl_c += "</tbody></table></div>"
     st.markdown(tbl_c, unsafe_allow_html=True)
@@ -583,15 +616,16 @@ with tab_cities:
     st.caption("Preencha os dados da sede municipal (prefeitura) da cidade que deseja adicionar.")
 
     with st.form("form_add_city", clear_on_submit=True):
-        fc1, fc2 = st.columns([3,1])
-        fc3, fc4 = st.columns(2)
-        fc5, fc6 = st.columns([3,1])
+        fc1, fc2, fc3 = st.columns([3,1,1])
+        fc4, fc5 = st.columns(2)
+        fc6, fc7 = st.columns([3,1])
         new_name    = fc1.text_input("Nome da Cidade", placeholder="Ex: Campinas")
         new_state   = fc2.text_input("UF", placeholder="SP", max_chars=2)
-        new_lat     = fc3.number_input("Latitude (Sede)", value=-23.0, format="%.5f", step=0.00001)
-        new_lon     = fc4.number_input("Longitude (Sede)", value=-47.0, format="%.5f", step=0.00001)
-        new_address = fc5.text_input("Endereço da Sede", placeholder="Rua XV de Novembro, 1000 - Centro")
-        submitted   = fc6.form_submit_button("➕ Adicionar", use_container_width=True, type="primary")
+        new_tipo    = fc3.selectbox("Tipo", ["Interior", "Capital"])
+        new_lat     = fc4.number_input("Latitude (Sede)", value=-23.0, format="%.5f", step=0.00001)
+        new_lon     = fc5.number_input("Longitude (Sede)", value=-47.0, format="%.5f", step=0.00001)
+        new_address = fc6.text_input("Endereço da Sede", placeholder="Rua XV de Novembro, 1000 - Centro")
+        submitted   = fc7.form_submit_button("➕ Adicionar", use_container_width=True, type="primary")
 
         if submitted:
             if not new_name or not new_state:
@@ -604,7 +638,8 @@ with tab_cities:
                     "state": new_state.strip().upper(),
                     "lat": float(new_lat),
                     "lon": float(new_lon),
-                    "address": new_address.strip()
+                    "address": new_address.strip(),
+                    "tipo": new_tipo
                 }
                 st.session_state.capitals.append(new_city)
                 st.session_state.selected.append(new_name.strip())
@@ -676,44 +711,85 @@ if st.session_state.calculated and st.session_state.calc_cities:
         if not has_ors:
             st.warning("Configure a chave ORS para calcular o índice de serpentividade.")
         else:
-            # Ranking ordenado
-            rows=[]
+            # Monta todos os pares com índice calculado
+            all_rows=[]
             for c1,c2 in combinations(cities,2):
-                d=matrix.get(f"{c1['name']}-{c2['name']}",{})
+                d=matrix.get(f"{c1['name']}-{c2['name']}", {})
                 line=d.get("line"); road=d.get("road")
                 idx=serp_idx(line,road)
-                if idx: rows.append({"c1":c1,"c2":c2,"line":line,"road":road,"idx":idx})
-            rows.sort(key=lambda x:x["idx"],reverse=True)
+                if idx: all_rows.append({"c1":c1,"c2":c2,"line":line,"road":road,"idx":idx})
+            all_rows.sort(key=lambda x:x["idx"],reverse=True)
 
-            tbl2=("<div style='overflow-x:auto'><table class='serp-table'>"
-                  "<thead><tr><th>#</th><th>Cidade A</th><th>Cidade B</th>"
-                  "<th>Reta (km)</th><th>Estrada (km)</th><th>Índice</th><th>Classificação</th></tr></thead><tbody>")
-            for rank,r in enumerate(rows,1):
-                label,fc,bg=serp_class(r["idx"])
-                badge=(f"<span class='serp-badge' style='color:{fc};background:{bg}'>{label}</span>")
-                tbl2+=(f"<tr>"
-                       f"<td style='text-align:center;color:#94a3b8;font-size:.75rem'>{rank}</td>"
-                       f"<td><b>{r['c1']['name']}</b>, {r['c1']['state']}</td>"
-                       f"<td><b>{r['c2']['name']}</b>, {r['c2']['state']}</td>"
-                       f"<td style='text-align:center;color:#1e40af;font-weight:700'>{r['line']}</td>"
-                       f"<td style='text-align:center;color:#166534;font-weight:700'>{r['road']}</td>"
-                       f"<td style='text-align:center'><span style='font-family:monospace;font-weight:700;color:{fc}'>{r['idx']:.3f}</span></td>"
-                       f"<td style='text-align:center'>{badge}</td>"
-                       f"</tr>")
-            tbl2+="</tbody></table></div>"
-            st.markdown(tbl2, unsafe_allow_html=True)
+            # ── Filtros ────────────────────────────────────────────────────────
+            st.markdown("##### Filtrar ranking")
+            f_col1, f_col2 = st.columns([2,3])
+            filter_tipo = f_col1.radio(
+                "Tipo de cidades",
+                ["Todas", "Apenas Capitais", "Apenas Interior", "Mesmo Estado"],
+                horizontal=False, label_visibility="collapsed"
+            )
+            from collections import Counter
+            uf_counts = Counter(c["state"] for c in cities)
+            ufs_multi = sorted([uf for uf,cnt in uf_counts.items() if cnt > 1])
+            uf_filter = None
+            if filter_tipo == "Mesmo Estado":
+                if ufs_multi:
+                    uf_filter = f_col2.selectbox("Estado (UF)", ufs_multi)
+                else:
+                    f_col2.warning("Nenhum estado tem mais de uma cidade selecionada.")
 
-            # Métricas resumo
-            st.markdown("---")
-            idxs=[r["idx"] for r in rows]
-            m1,m2,m3,m4=st.columns(4)
-            m1.metric("Média geral", f"{sum(idxs)/len(idxs):.3f}")
-            m2.metric("Mais direta 🟢", f"{min(idxs):.3f}",
-                      f"{rows[-1]['c1']['name']} ↔ {rows[-1]['c2']['name']}")
-            m3.metric("Mais sinuosa 🔴", f"{max(idxs):.3f}",
-                      f"{rows[0]['c1']['name']} ↔ {rows[0]['c2']['name']}")
-            diretas=sum(1 for i in idxs if i<1.2)
-            m4.metric("Rotas diretas (< 1.20)", f"{diretas}/{len(idxs)}")
+            def match_filter(r):
+                t1=r["c1"].get("tipo","—"); t2=r["c2"].get("tipo","—")
+                s1=r["c1"]["state"];        s2=r["c2"]["state"]
+                if filter_tipo=="Apenas Capitais":  return t1=="Capital" and t2=="Capital"
+                if filter_tipo=="Apenas Interior":  return t1=="Interior" and t2=="Interior"
+                if filter_tipo=="Mesmo Estado":     return bool(uf_filter and s1==uf_filter and s2==uf_filter)
+                return True
+
+            rows=[r for r in all_rows if match_filter(r)]
+
+            if not rows:
+                st.info("Nenhum par encontrado. Selecione mais cidades ou mude o filtro.")
+            else:
+                def tipo_chip(c):
+                    t=c.get("tipo","—")
+                    col,bg=("#1e40af","#eff6ff") if t=="Capital" else ("#92400e","#fef3c7")
+                    return f"<span style='background:{bg};color:{col};padding:1px 6px;border-radius:6px;font-size:.65rem;font-weight:700'>{t}</span>"
+
+                tbl2=("<div style='overflow-x:auto'><table class='serp-table'>"
+                      "<thead><tr><th>#</th><th>Cidade A</th><th>UF</th><th>Tipo</th>"
+                      "<th>Cidade B</th><th>UF</th><th>Tipo</th>"
+                      "<th>Reta (km)</th><th>Estrada (km)</th><th>Índice</th><th>Classif.</th>"
+                      "</tr></thead><tbody>")
+                for rank,r in enumerate(rows,1):
+                    label,fc,bg=serp_class(r["idx"])
+                    badge=f"<span class='serp-badge' style='color:{fc};background:{bg}'>{label}</span>"
+                    tbl2+=(f"<tr>"
+                           f"<td style='text-align:center;color:#94a3b8;font-size:.75rem'>{rank}</td>"
+                           f"<td><b>{r['c1']['name']}</b></td>"
+                           f"<td style='text-align:center;font-family:monospace;font-size:.75rem'>{r['c1']['state']}</td>"
+                           f"<td>{tipo_chip(r['c1'])}</td>"
+                           f"<td><b>{r['c2']['name']}</b></td>"
+                           f"<td style='text-align:center;font-family:monospace;font-size:.75rem'>{r['c2']['state']}</td>"
+                           f"<td>{tipo_chip(r['c2'])}</td>"
+                           f"<td style='text-align:center;color:#1e40af;font-weight:700'>{r['line']}</td>"
+                           f"<td style='text-align:center;color:#166534;font-weight:700'>{r['road']}</td>"
+                           f"<td style='text-align:center'><span style='font-family:monospace;font-weight:700;color:{fc}'>{r['idx']:.3f}</span></td>"
+                           f"<td style='text-align:center'>{badge}</td>"
+                           f"</tr>")
+                tbl2+="</tbody></table></div>"
+                st.markdown(tbl2, unsafe_allow_html=True)
+
+                st.markdown("---")
+                idxs=[r["idx"] for r in rows]
+                m1,m2,m3,m4=st.columns(4)
+                m1.metric("Média geral", f"{sum(idxs)/len(idxs):.3f}")
+                m2.metric("Mais direta 🟢", f"{min(idxs):.3f}",
+                          f"{rows[-1]['c1']['name']} ↔ {rows[-1]['c2']['name']}")
+                m3.metric("Mais sinuosa 🔴", f"{max(idxs):.3f}",
+                          f"{rows[0]['c1']['name']} ↔ {rows[0]['c2']['name']}")
+                diretas=sum(1 for i in idxs if i<1.2)
+                m4.metric("Rotas diretas (< 1.20)", f"{diretas}/{len(idxs)}")
 
     # ── Download ───────────────────────────────────────────────────────────────
     st.markdown("---")
