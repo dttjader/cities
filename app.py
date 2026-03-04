@@ -316,76 +316,107 @@ def build_excel(cities, matrix):
 
 # ── Importar Excel existente ───────────────────────────────────────────────────
 def import_from_xlsx(uploaded_file):
-    """Lê o Excel exportado pelo app e retorna matrix e lista de cidades."""
+    """Lê o Excel exportado pelo app (qualquer versão) e retorna matrix + cidades."""
     import openpyxl
     wb = openpyxl.load_workbook(uploaded_file, data_only=True)
 
-    # Lê coordenadas da aba Coordenadas
-    cities_map = {}
+    # Índice rápido de lookup: "Nome, UF" → dados completos do CAPITALS_DEFAULT
+    default_index = {}
+    for c in CAPITALS_DEFAULT:
+        default_index[f"{c['name']}, {c['state']}"] = c
+        default_index[c["name"]] = c  # fallback sem UF
+
+    # ── Aba Coordenadas das Sedes (opcional — enriquece dados) ─────────────────
+    coords_map = {}  # "Nome, UF" → {lat, lon, address, tipo}
     if "Coordenadas das Sedes" in wb.sheetnames:
         ws = wb["Coordenadas das Sedes"]
         for row in ws.iter_rows(min_row=2, values_only=True):
-            if row[0]:
-                name, state, lat, lon = row[0], row[1], row[2], row[3]
-                key = f"{name}, {state}"
-                cities_map[key] = {"name": name, "state": state,
-                                   "lat": float(lat), "lon": float(lon),
-                                   "address": row[4] if len(row) > 4 else ""}
+            if not row[0]: continue
+            name, state = str(row[0]).strip(), str(row[1]).strip() if row[1] else ""
+            key = f"{name}, {state}" if state else name
+            try:
+                lat = float(row[2]) if row[2] is not None else None
+                lon = float(row[3]) if row[3] is not None else None
+            except (TypeError, ValueError):
+                lat, lon = None, None
+            coords_map[key]  = {"lat": lat, "lon": lon,
+                                "address": row[4] if len(row) > 4 else "",
+                                "tipo": row[5] if len(row) > 5 else None}
+            coords_map[name] = coords_map[key]  # fallback sem UF
 
-    # Lê distâncias da aba Por Estrada
+    # ── Lê distâncias das abas ─────────────────────────────────────────────────
+    def read_matrix_sheet(sheetname):
+        data = {}
+        if sheetname not in wb.sheetnames:
+            return data
+        ws = wb[sheetname]
+        headers = [ws.cell(1, j).value for j in range(2, ws.max_column + 1)]
+        for row in ws.iter_rows(min_row=2, min_col=1, values_only=True):
+            c1 = row[0]
+            if not c1: continue
+            for j, val in enumerate(row[1:]):
+                c2 = headers[j] if j < len(headers) else None
+                if c2 and c1 != c2 and isinstance(val, (int, float)):
+                    data[f"{c1}|{c2}"] = float(val)
+        return data
+
+    road_data = read_matrix_sheet("Por Estrada (km)")
+    line_data = read_matrix_sheet("Linha Reta (km)")
+
+    # ── Monta matrix interna ───────────────────────────────────────────────────
     matrix = {}
-    road_data = {}
-    if "Por Estrada (km)" in wb.sheetnames:
-        ws = wb["Por Estrada (km)"]
-        headers = [ws.cell(1, j).value for j in range(2, ws.max_column + 1)]
-        for i, row in enumerate(ws.iter_rows(min_row=2, min_col=1, values_only=True)):
-            c1_name = row[0]
-            if not c1_name: continue
-            for j, val in enumerate(row[1:]):
-                c2_name = headers[j] if j < len(headers) else None
-                if c2_name and c1_name != c2_name and isinstance(val, (int, float)):
-                    road_data[f"{c1_name}|{c2_name}"] = float(val)
-
-    # Lê distâncias da aba Linha Reta
-    line_data = {}
-    if "Linha Reta (km)" in wb.sheetnames:
-        ws = wb["Linha Reta (km)"]
-        headers = [ws.cell(1, j).value for j in range(2, ws.max_column + 1)]
-        for i, row in enumerate(ws.iter_rows(min_row=2, min_col=1, values_only=True)):
-            c1_name = row[0]
-            if not c1_name: continue
-            for j, val in enumerate(row[1:]):
-                c2_name = headers[j] if j < len(headers) else None
-                if c2_name and c1_name != c2_name and isinstance(val, (int, float)):
-                    line_data[f"{c1_name}|{c2_name}"] = float(val)
-
-    # Monta matrix no formato do app (chave = "NomeCidade1-NomeCidade2" sem UF)
-    all_pairs = set(list(road_data.keys()) + list(line_data.keys()))
-    for pair_key in all_pairs:
+    all_pair_keys = set(road_data) | set(line_data)
+    for pair_key in all_pair_keys:
         parts = pair_key.split("|")
         if len(parts) != 2: continue
-        c1_full, c2_full = parts
-        # Extrai só o nome (sem ", UF")
+        c1_full, c2_full = parts[0].strip(), parts[1].strip()
         c1_short = c1_full.split(",")[0].strip()
         c2_short = c2_full.split(",")[0].strip()
         road = road_data.get(pair_key)
-        line = line_data.get(pair_key) or line_data.get(f"{c2_full}|{c1_full}")
-        mk = f"{c1_short}-{c2_short}"
-        mk2 = f"{c2_short}-{c1_short}"
+        line = (line_data.get(pair_key) or
+                line_data.get(f"{c2_full}|{c1_full}") or
+                line_data.get(f"{c2_short}|{c1_short}"))
         entry = {"line": line, "road": road}
-        matrix[mk] = entry
-        matrix[mk2] = entry
+        matrix[f"{c1_short}-{c2_short}"] = entry
+        matrix[f"{c2_short}-{c1_short}"] = entry
 
-    # Descobre cidades presentes
+    # ── Descobre cidades únicas presentes no arquivo ───────────────────────────
+    city_names_seen = {}  # nome_curto → nome_completo ("Nome, UF")
+    for pair_key in all_pair_keys:
+        for part in pair_key.split("|"):
+            part = part.strip()
+            short = part.split(",")[0].strip()
+            if short not in city_names_seen:
+                city_names_seen[short] = part
+
+    # Monta lista de cidades: prioriza CAPITALS_DEFAULT, depois coords_map, depois mínimo
     imported_cities = []
-    seen = set()
-    for c in CAPITALS:
+    seen_names = set()
+    # Primeiro passa pelas cidades do arquivo na ordem de CAPITALS_DEFAULT
+    for c in CAPITALS_DEFAULT:
         full = f"{c['name']}, {c['state']}"
-        if full in cities_map and c["name"] not in seen:
-            imported_cities.append(c)
-            seen.add(c["name"])
+        if c["name"] in city_names_seen and c["name"] not in seen_names:
+            imported_cities.append(dict(c))
+            seen_names.add(c["name"])
+    # Depois adiciona cidades do arquivo que não estão no CAPITALS_DEFAULT
+    for short, full in city_names_seen.items():
+        if short in seen_names:
+            continue
+        # Tenta enriquecer com coords_map ou default_index
+        base = coords_map.get(full) or coords_map.get(short) or {}
+        default = default_index.get(full) or default_index.get(short) or {}
+        state = full.split(",")[1].strip() if "," in full else ""
+        imported_cities.append({
+            "name": short,
+            "state": state or default.get("state", ""),
+            "lat":  base.get("lat") or default.get("lat") or 0.0,
+            "lon":  base.get("lon") or default.get("lon") or 0.0,
+            "address": base.get("address") or default.get("address", ""),
+            "tipo": base.get("tipo") or default.get("tipo", "Interior"),
+        })
+        seen_names.add(short)
 
-    pairs_with_road = sum(1 for v in matrix.values() if v.get("road") is not None)
+    pairs_with_road = sum(1 for v in matrix.values() if v.get("road") is not None) // 2
     pairs_total = len(matrix) // 2
 
     return matrix, imported_cities, pairs_total, pairs_with_road
