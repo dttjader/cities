@@ -456,8 +456,9 @@ with st.sidebar:
         st.session_state.calculated=False; st.rerun()
     new_sel=[]
     for c in CAPITALS:
-        val = st.session_state.get(f"cb_{c['name']}", c["name"] in st.session_state.selected)
-        if st.checkbox(f"{c['name']} ({c['state']})", value=val, key=f"cb_{c['name']}"):
+        # "selected" é sempre a fonte de verdade; cb_ só registra mudanças manuais do usuário
+        in_selected = c["name"] in st.session_state.selected
+        if st.checkbox(f"{c['name']} ({c['state']})", value=in_selected, key=f"cb_{c['name']}"):
             new_sel.append(c["name"])
     if set(new_sel)!=set(st.session_state.selected):
         st.session_state.selected=new_sel; st.session_state.calculated=False
@@ -481,12 +482,11 @@ with st.sidebar:
                     if c["name"] not in existing_names:
                         st.session_state.capitals.append(dict(c))
 
-                # Seleciona exatamente as cidades do arquivo (e reseta as outras)
+                # Seleciona exatamente as cidades do arquivo
+                # NÃO mexemos nos cb_ aqui pois os widgets já foram renderizados.
+                # O rerun() a seguir fará nova execução e os checkboxes lerão "selected".
                 imp_names = [c["name"] for c in imp_cities]
                 st.session_state.selected = imp_names
-                # Força checkboxes
-                for c in st.session_state.capitals:
-                    st.session_state[f"cb_{c['name']}"] = c["name"] in imp_names
 
                 st.session_state.matrix = matrix
                 st.session_state.calc_cities = imp_cities
