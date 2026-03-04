@@ -472,24 +472,42 @@ with st.sidebar:
     if uploaded:
         if st.button("⬆ Importar dados", use_container_width=True):
             try:
+                import traceback
                 matrix, imp_cities, total, with_road = import_from_xlsx(uploaded)
+
+                # Atualiza CAPITALS com as cidades importadas que ainda não estejam na base
+                existing_names = {c["name"] for c in st.session_state.capitals}
+                for c in imp_cities:
+                    if c["name"] not in existing_names:
+                        st.session_state.capitals.append(dict(c))
+
+                # Seleciona exatamente as cidades do arquivo (e reseta as outras)
+                imp_names = [c["name"] for c in imp_cities]
+                st.session_state.selected = imp_names
+                # Força checkboxes
+                for c in st.session_state.capitals:
+                    st.session_state[f"cb_{c['name']}"] = c["name"] in imp_names
+
                 st.session_state.matrix = matrix
                 st.session_state.calc_cities = imp_cities
                 st.session_state.calculated = True
                 st.session_state.has_ors = with_road > 0
-                st.session_state.selected = [c["name"] for c in imp_cities]
-                # Calcula pares faltantes para retomar
+
+                # Pares faltantes (sem road) para poder retomar
                 from itertools import combinations as comb2
                 all_pairs = list(comb2(imp_cities, 2))
-                pending = [(c1,c2) for c1,c2 in all_pairs
+                pending = [(c1, c2) for c1, c2 in all_pairs
                            if matrix.get(f"{c1['name']}-{c2['name']}", {}).get("road") is None]
+                n_done = len(all_pairs) - len(pending)
                 st.session_state.pending_pairs = pending
-                st.session_state.done_count = total - len(pending)
-                st.session_state.total_pairs_count = total
-                st.success(f"✅ Importado! {with_road} pares com estrada, {len(pending)} faltando.")
+                st.session_state.done_count = n_done
+                st.session_state.total_pairs_count = len(all_pairs)
+
+                st.success(f"✅ Importado! {with_road} pares com estrada · {len(pending)} pares faltando.")
                 st.rerun()
             except Exception as e:
                 st.error(f"Erro ao importar: {e}")
+                st.code(traceback.format_exc())
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 selected_cities=[c for c in CAPITALS if c["name"] in st.session_state.selected]
