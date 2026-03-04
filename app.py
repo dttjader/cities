@@ -460,8 +460,13 @@ with st.sidebar:
         in_selected = c["name"] in st.session_state.selected
         if st.checkbox(f"{c['name']} ({c['state']})", value=in_selected, key=f"cb_{c['name']}"):
             new_sel.append(c["name"])
-    if set(new_sel)!=set(st.session_state.selected):
-        st.session_state.selected=new_sel; st.session_state.calculated=False
+    if st.session_state.get("just_imported"):
+        # Pós-importação: ignora o estado dos checkboxes neste rerun (widgets recém-criados)
+        # e limpa a flag para que interações futuras funcionem normalmente
+        st.session_state.just_imported = False
+    elif set(new_sel) != set(st.session_state.selected):
+        st.session_state.selected = new_sel
+        st.session_state.calculated = False
     st.markdown(f"**{len(st.session_state.selected)}** cidade(s) selecionada(s)")
     st.markdown("---")
     st.markdown("### 📥 Importar Excel anterior")
@@ -503,6 +508,7 @@ with st.sidebar:
                 st.session_state.done_count = n_done
                 st.session_state.total_pairs_count = len(all_pairs)
 
+                st.session_state.just_imported = True
                 st.success(f"✅ Importado! {with_road} pares com estrada · {len(pending)} pares faltando.")
                 st.rerun()
             except Exception as e:
