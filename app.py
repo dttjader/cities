@@ -430,6 +430,12 @@ for k,v in [("selected",[c["name"] for c in CAPITALS]),("matrix",{}),
             ("calculated",False),("calc_cities",[]),("has_ors",False)]:
     if k not in st.session_state: st.session_state[k]=v
 
+# Inicializa cb_ para cada cidade (sem conflito com value=)
+for _c in CAPITALS:
+    _key = f"cb_{_c['name']}"
+    if _key not in st.session_state:
+        st.session_state[_key] = _c["name"] in st.session_state.selected
+
 # ── Sidebar ────────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("### ⚙️ Configuração")
@@ -447,11 +453,15 @@ with st.sidebar:
     # Callbacks para Todas/Nenhuma — executam ANTES dos widgets serem renderizados
     def select_all():
         st.session_state.selected = [c["name"] for c in CAPITALS]
+        for c in CAPITALS:
+            st.session_state[f"cb_{c['name']}"] = True
         st.session_state.calculated = False
         st.session_state.pending_pairs = []
 
     def select_none():
         st.session_state.selected = []
+        for c in CAPITALS:
+            st.session_state[f"cb_{c['name']}"] = False
         st.session_state.calculated = False
         st.session_state.pending_pairs = []
 
@@ -472,7 +482,6 @@ with st.sidebar:
     for c in CAPITALS:
         st.checkbox(
             f"{c['name']} ({c['state']})",
-            value=(c["name"] in st.session_state.selected),
             key=f"cb_{c['name']}",
             on_change=on_checkbox_change,
             args=(c["name"],)
@@ -515,6 +524,10 @@ with st.sidebar:
                 st.session_state.pending_pairs = pending
                 st.session_state.done_count = n_done
                 st.session_state.total_pairs_count = len(all_pairs)
+
+                # Sincroniza cb_ com selected (permitido pois widgets ainda não foram renderizados aqui)
+                for _c in st.session_state.capitals:
+                    st.session_state[f"cb_{_c['name']}"] = _c["name"] in st.session_state.selected
 
                 st.success(
                     f"✅ Importado! {with_road} pares aproveitados · "
