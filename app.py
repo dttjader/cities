@@ -443,30 +443,40 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 📍 Selecionar Cidades")
-    c1b,c2b=st.columns(2)
-    if c1b.button("✓ Todas",use_container_width=True):
-        st.session_state.selected=[c["name"] for c in CAPITALS]
-        for c in CAPITALS:
-            st.session_state[f"cb_{c['name']}"]=True
-        st.session_state.calculated=False; st.rerun()
-    if c2b.button("✗ Nenhuma",use_container_width=True):
-        st.session_state.selected=[]
-        for c in CAPITALS:
-            st.session_state[f"cb_{c['name']}"]=False
-        st.session_state.calculated=False; st.rerun()
-    new_sel=[]
-    for c in CAPITALS:
-        # "selected" é sempre a fonte de verdade; cb_ só registra mudanças manuais do usuário
-        in_selected = c["name"] in st.session_state.selected
-        if st.checkbox(f"{c['name']} ({c['state']})", value=in_selected, key=f"cb_{c['name']}"):
-            new_sel.append(c["name"])
-    if st.session_state.get("just_imported"):
-        # Pós-importação: ignora o estado dos checkboxes neste rerun (widgets recém-criados)
-        # e limpa a flag para que interações futuras funcionem normalmente
-        st.session_state.just_imported = False
-    elif set(new_sel) != set(st.session_state.selected):
-        st.session_state.selected = new_sel
+
+    # Callbacks para Todas/Nenhuma — executam ANTES dos widgets serem renderizados
+    def select_all():
+        st.session_state.selected = [c["name"] for c in CAPITALS]
         st.session_state.calculated = False
+        st.session_state.pending_pairs = []
+
+    def select_none():
+        st.session_state.selected = []
+        st.session_state.calculated = False
+        st.session_state.pending_pairs = []
+
+    def on_checkbox_change(city_name):
+        key = f"cb_{city_name}"
+        if st.session_state.get(key):
+            if city_name not in st.session_state.selected:
+                st.session_state.selected = st.session_state.selected + [city_name]
+        else:
+            st.session_state.selected = [n for n in st.session_state.selected if n != city_name]
+        st.session_state.calculated = False
+        st.session_state.pending_pairs = []
+
+    c1b, c2b = st.columns(2)
+    c1b.button("✓ Todas",   use_container_width=True, on_click=select_all)
+    c2b.button("✗ Nenhuma", use_container_width=True, on_click=select_none)
+
+    for c in CAPITALS:
+        st.checkbox(
+            f"{c['name']} ({c['state']})",
+            value=(c["name"] in st.session_state.selected),
+            key=f"cb_{c['name']}",
+            on_change=on_checkbox_change,
+            args=(c["name"],)
+        )
     st.markdown(f"**{len(st.session_state.selected)}** cidade(s) selecionada(s)")
     st.markdown("---")
     st.markdown("### 📥 Importar Excel anterior")
@@ -487,20 +497,18 @@ with st.sidebar:
                     if c["name"] not in existing_names:
                         st.session_state.capitals.append(dict(c))
 
-                # Seleciona exatamente as cidades do arquivo
-                # NÃO mexemos nos cb_ aqui pois os widgets já foram renderizados.
-                # O rerun() a seguir fará nova execução e os checkboxes lerão "selected".
-                imp_names = [c["name"] for c in imp_cities]
-                st.session_state.selected = imp_names
+                # Usa as cidades atualmente selecionadas (pode ser mais que as do arquivo)
+                from itertools import combinations as comb2
+                current_cities = [c for c in st.session_state.capitals
+                                  if c["name"] in st.session_state.selected]
 
                 st.session_state.matrix = matrix
-                st.session_state.calc_cities = imp_cities
-                st.session_state.calculated = True
+                st.session_state.calc_cities = current_cities
+                st.session_state.calculated = (with_road > 0)
                 st.session_state.has_ors = with_road > 0
 
-                # Pares faltantes (sem road) para poder retomar
-                from itertools import combinations as comb2
-                all_pairs = list(comb2(imp_cities, 2))
+                # Pares faltantes = pares sem road entre todas as cidades selecionadas
+                all_pairs = list(comb2(current_cities, 2))
                 pending = [(c1, c2) for c1, c2 in all_pairs
                            if matrix.get(f"{c1['name']}-{c2['name']}", {}).get("road") is None]
                 n_done = len(all_pairs) - len(pending)
@@ -508,8 +516,11 @@ with st.sidebar:
                 st.session_state.done_count = n_done
                 st.session_state.total_pairs_count = len(all_pairs)
 
-                st.session_state.just_imported = True
-                st.success(f"✅ Importado! {with_road} pares com estrada · {len(pending)} pares faltando.")
+                st.success(
+                    f"✅ Importado! {with_road} pares aproveitados · "
+                    f"{n_done}/{len(all_pairs)} concluídos · "
+                    f"{len(pending)} pares faltando."
+                )
                 st.rerun()
             except Exception as e:
                 st.error(f"Erro ao importar: {e}")
@@ -529,8 +540,8 @@ with btn_col1:
 
 # ── Cálculo ────────────────────────────────────────────────────────────────────
 # ── Botão retomar ────────────────────────────────────────────────────────────
-can_resume = (st.session_state.get("pending_pairs") and
-              st.session_state.get("calc_cities") == selected_cities)
+# Pode retomar se há pares pendentes (independente de seleção atual)
+can_resume = bool(st.session_state.get("pending_pairs"))
 
 with btn_col1:
     pass  # já renderizado acima
