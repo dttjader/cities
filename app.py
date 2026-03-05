@@ -430,11 +430,7 @@ for k,v in [("selected",[c["name"] for c in CAPITALS]),("matrix",{}),
             ("calculated",False),("calc_cities",[]),("has_ors",False)]:
     if k not in st.session_state: st.session_state[k]=v
 
-# Inicializa cb_ para cada cidade (sem conflito com value=)
-for _c in CAPITALS:
-    _key = f"cb_{_c['name']}"
-    if _key not in st.session_state:
-        st.session_state[_key] = _c["name"] in st.session_state.selected
+
 
 # ── Sidebar ────────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -453,25 +449,11 @@ with st.sidebar:
     # Callbacks para Todas/Nenhuma — executam ANTES dos widgets serem renderizados
     def select_all():
         st.session_state.selected = [c["name"] for c in CAPITALS]
-        for c in CAPITALS:
-            st.session_state[f"cb_{c['name']}"] = True
         st.session_state.calculated = False
         st.session_state.pending_pairs = []
 
     def select_none():
         st.session_state.selected = []
-        for c in CAPITALS:
-            st.session_state[f"cb_{c['name']}"] = False
-        st.session_state.calculated = False
-        st.session_state.pending_pairs = []
-
-    def on_checkbox_change(city_name):
-        key = f"cb_{city_name}"
-        if st.session_state.get(key):
-            if city_name not in st.session_state.selected:
-                st.session_state.selected = st.session_state.selected + [city_name]
-        else:
-            st.session_state.selected = [n for n in st.session_state.selected if n != city_name]
         st.session_state.calculated = False
         st.session_state.pending_pairs = []
 
@@ -479,13 +461,22 @@ with st.sidebar:
     c1b.button("✓ Todas",   use_container_width=True, on_click=select_all)
     c2b.button("✗ Nenhuma", use_container_width=True, on_click=select_none)
 
+    # Sem key= nos checkboxes: evita qualquer conflito com session_state
+    # O valor lido pelo Streamlit é o retorno direto do widget
+    _new_sel = []
     for c in CAPITALS:
-        st.checkbox(
-            f"{c['name']} ({c['state']})",
-            key=f"cb_{c['name']}",
-            on_change=on_checkbox_change,
-            args=(c["name"],)
-        )
+        if st.checkbox(f"{c['name']} ({c['state']})",
+                       value=(c["name"] in st.session_state.selected)):
+            _new_sel.append(c["name"])
+
+    # Atualiza selected apenas se o usuário mudou manualmente
+    # (ignora na primeira execução pós-importação, onde _new_sel pode divergir)
+    if st.session_state.pop("_skip_sel_update", False):
+        pass  # rerun pós-importação: preserva selected atual
+    elif set(_new_sel) != set(st.session_state.selected):
+        st.session_state.selected = _new_sel
+        st.session_state.calculated = False
+        st.session_state.pending_pairs = []
     st.markdown(f"**{len(st.session_state.selected)}** cidade(s) selecionada(s)")
     st.markdown("---")
     st.markdown("### 📥 Importar Excel anterior")
@@ -525,15 +516,12 @@ with st.sidebar:
                 st.session_state.done_count = n_done
                 st.session_state.total_pairs_count = len(all_pairs)
 
-                # Sincroniza cb_ com selected (permitido pois widgets ainda não foram renderizados aqui)
-                for _c in st.session_state.capitals:
-                    st.session_state[f"cb_{_c['name']}"] = _c["name"] in st.session_state.selected
-
                 st.success(
                     f"✅ Importado! {with_road} pares aproveitados · "
                     f"{n_done}/{len(all_pairs)} concluídos · "
                     f"{len(pending)} pares faltando."
                 )
+                st.session_state["_skip_sel_update"] = True
                 st.rerun()
             except Exception as e:
                 st.error(f"Erro ao importar: {e}")
@@ -722,7 +710,6 @@ with tab_cities:
                 }
                 st.session_state.capitals.append(new_city)
                 st.session_state.selected.append(new_name.strip())
-                st.session_state[f"cb_{new_name.strip()}"] = True
                 st.success(f"✅ '{new_name.strip()}, {new_state.strip().upper()}' adicionada!")
                 st.rerun()
 
