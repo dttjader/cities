@@ -556,6 +556,8 @@ if can_resume:
             f"Restam **{len(pending)}** pares.")
     resume_clicked = st.button("▶ Retomar Cálculo", use_container_width=False, type="secondary")
 
+ORS_BATCH_LIMIT = 40  # máximo de chamadas ORS por sessão
+
 def run_calculation(pairs_to_calc, ors_key, has_ors, existing_matrix):
     matrix = dict(existing_matrix)
     all_pairs_count = st.session_state.get("total_pairs_count", len(pairs_to_calc))
@@ -565,19 +567,28 @@ def run_calculation(pairs_to_calc, ors_key, has_ors, existing_matrix):
     status = st.empty()
     remaining = list(pairs_to_calc)
 
+    ors_calls = 0
+    stopped_early = False
+
     for idx, (c1, c2) in enumerate(remaining):
+        # Interrompe ao atingir o limite ORS
+        if has_ors and ors_calls >= ORS_BATCH_LIMIT:
+            stopped_early = True
+            st.session_state.pending_pairs = remaining[idx:]
+            break
+
         line = haversine(c1["lat"], c1["lon"], c2["lat"], c2["lon"])
         road = None
         if has_ors:
             status.markdown(f"🚗 **{c1['name']} → {c2['name']}** "
                             f"({done_so_far+idx+1}/{all_pairs_count})")
             road = get_road_distance(c1, c2, ors_key)
+            ors_calls += 1
 
         key = f"{c1['name']}-{c2['name']}"
         matrix[key] = {"line": line, "road": road}
         matrix[f"{c2['name']}-{c1['name']}"] = {"line": line, "road": road}
 
-        # Salva progresso parcial a cada par
         st.session_state.matrix = matrix
         st.session_state.done_count = done_so_far + idx + 1
         st.session_state.pending_pairs = remaining[idx+1:]
@@ -585,9 +596,22 @@ def run_calculation(pairs_to_calc, ors_key, has_ors, existing_matrix):
         pct = int((done_so_far+idx+1)/all_pairs_count*100)
         prog.progress(pct, text=f"Calculando… {done_so_far+idx+1}/{all_pairs_count}")
 
-    prog.progress(100, text="✅ Concluído!")
     status.empty()
-    st.session_state.pending_pairs = []
+    if stopped_early:
+        remaining_count = len(st.session_state.pending_pairs)
+        prog.progress(
+            int(st.session_state.done_count/all_pairs_count*100),
+            text=f"⏸ Limite de {ORS_BATCH_LIMIT} chamadas atingido"
+        )
+        st.warning(
+            f"⏸ **{ORS_BATCH_LIMIT} rotas calculadas nesta rodada.** "
+            f"Ainda faltam **{remaining_count}** pares. "
+            f"Clique em **▶ Retomar Cálculo** para continuar."
+        )
+    else:
+        prog.progress(100, text="✅ Concluído!")
+        st.session_state.pending_pairs = []
+
     return matrix
 
 if calc_clicked and len(selected_cities)>=2:
