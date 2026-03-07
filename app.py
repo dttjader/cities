@@ -62,9 +62,10 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 .serp-table thead th { background:#0f1117; color:#f5f0e8; padding:9px 12px;
     text-align:center; font-weight:600; font-size:.73rem; }
 .serp-table thead th:first-child,.serp-table thead th:nth-child(2) { text-align:left; background:#1a1d26; }
-.serp-table tbody tr:nth-child(even) { background:#f8fafc; }
-.serp-table tbody tr:hover td { background:#f0f9ff !important; }
-.serp-table tbody td { padding:8px 12px; border-bottom:1px solid #e2e8f0; vertical-align:middle; }
+.serp-table tbody tr { background:#f1f5f9; color:#0f1117; }
+.serp-table tbody tr:nth-child(even) { background:#e2e8f0; color:#0f1117; }
+.serp-table tbody tr:hover td { background:#dbeafe !important; }
+.serp-table tbody td { padding:8px 12px; border-bottom:1px solid #cbd5e1; vertical-align:middle; color:#0f1117; }
 .serp-table tbody td:nth-child(3),.serp-table tbody td:nth-child(4),.serp-table tbody td:nth-child(5) { text-align:center; }
 </style>
 """, unsafe_allow_html=True)
@@ -655,9 +656,10 @@ elif resume_clicked:
 st.markdown("---")
 
 # ── TABS PRINCIPAIS ────────────────────────────────────────────────────────────
-tab_calc, tab_serp, tab_cities = st.tabs([
+tab_calc, tab_serp, tab_city, tab_cities = st.tabs([
     "📊 Matriz de Distâncias",
     "🐍 Índice de Serpentividade",
+    "🏙 Por Cidade",
     "📍 Cidades & Geolocalização"
 ])
 
@@ -747,6 +749,91 @@ if st.session_state.calculated and st.session_state.calc_cities:
 
     # ── Tabs de resultados ─────────────────────────────────────────────────────
     tab1, tab2 = tab_calc, tab_serp  # alias para os resultados
+
+    # ── TAB: Por Cidade ────────────────────────────────────────────────────────
+    with tab_city:
+        if not has_ors:
+            st.info("ℹ️ Distâncias por estrada indisponíveis sem chave ORS.")
+
+        city_names = [c["name"] for c in cities]
+        chosen = st.selectbox("Escolha uma cidade", city_names,
+                              format_func=lambda n: next(
+                                  f"{c['name']}, {c['state']} ({c.get('tipo','—')})"
+                                  for c in cities if c["name"] == n))
+
+        chosen_city = next(c for c in cities if c["name"] == chosen)
+        others = [c for c in cities if c["name"] != chosen]
+
+        # Monta linhas: todas as outras cidades com distâncias para a escolhida
+        rows_city = []
+        for c in others:
+            d = matrix.get(f"{chosen}-{c['name']}", {})
+            line = d.get("line")
+            road = d.get("road")
+            idx  = serp_idx(line, road)
+            rows_city.append({"city": c, "line": line, "road": road, "idx": idx})
+
+        # Ordena por linha reta por padrão
+        rows_city.sort(key=lambda r: r["line"] or 999999)
+
+        def tipo_chip_city(c):
+            t = c.get("tipo", "—")
+            col, bg = ("#1e40af","#eff6ff") if t=="Capital" else ("#92400e","#fef3c7")
+            return (f"<span style='background:{bg};color:{col};padding:1px 7px;"
+                    f"border-radius:6px;font-size:.68rem;font-weight:700'>{t}</span>")
+
+        # Métricas rápidas
+        roads_avail = [r for r in rows_city if r["road"] is not None]
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Cidades comparadas", len(rows_city))
+        if roads_avail:
+            closest = min(roads_avail, key=lambda r: r["road"])
+            farthest = max(roads_avail, key=lambda r: r["road"])
+            serps = [r["idx"] for r in roads_avail if r["idx"]]
+            m2.metric("Mais próxima 🚗", f"{closest['road']} km",
+                      closest["city"]["name"])
+            m3.metric("Mais distante 🚗", f"{farthest['road']} km",
+                      farthest["city"]["name"])
+            if serps:
+                m4.metric("Serp. média", f"{sum(serps)/len(serps):.3f}")
+
+        st.markdown("")
+
+        # Tabela
+        tbl_city = ("<div style='overflow-x:auto'><table class='serp-table'>"
+                    "<thead><tr>"
+                    "<th style='text-align:left'>Destino</th>"
+                    "<th>UF</th><th>Tipo</th>"
+                    "<th>✈ Reta (km)</th>"
+                    "<th>🚗 Estrada (km)</th>"
+                    "<th>🐍 Índice</th>"
+                    "<th>Classif.</th>"
+                    "</tr></thead><tbody>")
+
+        for i, r in enumerate(rows_city):
+            c = r["city"]
+            line_str = f"{r['line']}" if r["line"] else "—"
+            road_str = (f"<span style='color:#166534;font-weight:700'>{r['road']}</span>"
+                        if r["road"] else "<span style='color:#fca5a5;font-size:.75rem'>N/D</span>")
+            if r["idx"]:
+                label, fc, bg = serp_class(r["idx"])
+                idx_str  = f"<span style='font-family:monospace;font-weight:700;color:{fc}'>{r['idx']:.3f}</span>"
+                badge    = f"<span class='serp-badge' style='color:{fc};background:{bg}'>{label}</span>"
+            else:
+                idx_str = badge = "—"
+
+            tbl_city += (f"<tr>"
+                         f"<td style='font-weight:600'>{c['name']}</td>"
+                         f"<td style='text-align:center;font-family:monospace;font-size:.75rem'>{c['state']}</td>"
+                         f"<td>{tipo_chip_city(c)}</td>"
+                         f"<td style='text-align:center;color:#1e40af;font-weight:700'>{line_str}</td>"
+                         f"<td style='text-align:center'>{road_str}</td>"
+                         f"<td style='text-align:center'>{idx_str}</td>"
+                         f"<td style='text-align:center'>{badge}</td>"
+                         f"</tr>")
+
+        tbl_city += "</tbody></table></div>"
+        st.markdown(tbl_city, unsafe_allow_html=True)
 
     # ── TAB 1: Matriz ──────────────────────────────────────────────────────────
     with tab1:
